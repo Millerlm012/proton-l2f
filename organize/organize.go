@@ -37,29 +37,6 @@ func (s *Service) createSubFolders(ctx context.Context, subFolders []string, exi
 			parentID = folders[previousFolder].ID
 		}
 		s.createMissingFolder(ctx, subFolder, parentID, existingFolders)
-
-		// if _, ok := folders[subFolder]; ok {
-		// 	continue
-		// }
-		//
-		// // parentID is "" for first element
-		// // all sub folders parent will be the previous sub
-		// parentID := ""
-		// if i != 0 {
-		// 	previousFolder := subFolders[i-1]
-		// 	parentID = folders[previousFolder].ID
-		// }
-		//
-		// newFolder, err := s.Client.CreateLabel(ctx, proton.CreateLabelReq{
-		// 	Name:     subFolder,
-		// 	Type:     proton.LabelTypeFolder,
-		// 	ParentID: parentID,
-		// })
-		// if err != nil {
-		// 	return fmt.Errorf("failed to create %s folder %w", subFolder, err)
-		// }
-		//
-		// folders[newFolder.Name] = newFolder
 	}
 
 	return nil
