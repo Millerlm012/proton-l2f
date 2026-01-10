@@ -9,14 +9,6 @@ import (
 	"github.com/millerlm012/proton-l2f/utils"
 )
 
-func loadEnv(envPath string) error {
-	if err := godotenv.Load(envPath); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // TODO: replace all panics with something more reasonable
 func main() {
 	args, err := utils.ParseFlags()
@@ -24,7 +16,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := loadEnv(args.EnvPath); err != nil {
+	if err := godotenv.Load(args.EnvPath); err != nil {
 		panic(err)
 	}
 
