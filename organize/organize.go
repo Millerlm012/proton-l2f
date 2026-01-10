@@ -65,7 +65,7 @@ func (s *Service) createSubFolders(ctx context.Context, subFolders []string, exi
 	return nil
 }
 
-func (s *Service) createMissingFolder(ctx context.Context, labelName string, parentId string, existingFolders *map[string]proton.Label) error {
+func (s *Service) createMissingFolder(ctx context.Context, labelName string, parentID string, existingFolders *map[string]proton.Label) error {
 	folders := *existingFolders
 
 	// skipping label that already has a matching folder
@@ -76,7 +76,7 @@ func (s *Service) createMissingFolder(ctx context.Context, labelName string, par
 	newFolder, err := s.Client.CreateLabel(ctx, proton.CreateLabelReq{
 		Name:     labelName,
 		Type:     proton.LabelTypeFolder,
-		ParentID: parentId,
+		ParentID: parentID,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create %s folder %w", labelName, err)
