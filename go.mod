@@ -4,6 +4,8 @@ go 1.24.5
 
 require (
 	github.com/ProtonMail/go-proton-api v0.4.0
+	github.com/go-resty/resty/v2 v2.7.0
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.11.1
 )
@@ -24,8 +26,6 @@ require (
 	github.com/emersion/go-message v0.16.0 // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/emersion/go-vcard v0.0.0-20220507122617-d4056df0ec4a // indirect
-	github.com/go-resty/resty/v2 v2.7.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
