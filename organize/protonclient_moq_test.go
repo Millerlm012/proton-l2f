@@ -6,6 +6,7 @@ package organize
 import (
 	"context"
 	"github.com/ProtonMail/go-proton-api"
+	"github.com/go-resty/resty/v2"
 	"sync"
 )
 
@@ -22,8 +23,23 @@ var _ ProtonClient = &ProtonClientMock{}
 //			CreateLabelFunc: func(ctx context.Context, req proton.CreateLabelReq) (proton.Label, error) {
 //				panic("mock out the CreateLabel method")
 //			},
+//			DeleteLabelFunc: func(ctx context.Context, labelID string) error {
+//				panic("mock out the DeleteLabel method")
+//			},
 //			GetLabelsFunc: func(ctx context.Context, labelTypes ...proton.LabelType) ([]proton.Label, error) {
 //				panic("mock out the GetLabels method")
+//			},
+//			LabelMessagesFunc: func(ctx context.Context, messageIDs []string, labelID string) error {
+//				panic("mock out the LabelMessages method")
+//			},
+//			UnlabelMessagesFunc: func(ctx context.Context, messageIDs []string, labelID string) error {
+//				panic("mock out the UnlabelMessages method")
+//			},
+//			UpdateLabelFunc: func(ctx context.Context, labelID string, req proton.UpdateLabelReq) (proton.Label, error) {
+//				panic("mock out the UpdateLabel method")
+//			},
+//			doFunc: func(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error {
+//				panic("mock out the do method")
 //			},
 //		}
 //
@@ -35,8 +51,23 @@ type ProtonClientMock struct {
 	// CreateLabelFunc mocks the CreateLabel method.
 	CreateLabelFunc func(ctx context.Context, req proton.CreateLabelReq) (proton.Label, error)
 
+	// DeleteLabelFunc mocks the DeleteLabel method.
+	DeleteLabelFunc func(ctx context.Context, labelID string) error
+
 	// GetLabelsFunc mocks the GetLabels method.
 	GetLabelsFunc func(ctx context.Context, labelTypes ...proton.LabelType) ([]proton.Label, error)
+
+	// LabelMessagesFunc mocks the LabelMessages method.
+	LabelMessagesFunc func(ctx context.Context, messageIDs []string, labelID string) error
+
+	// UnlabelMessagesFunc mocks the UnlabelMessages method.
+	UnlabelMessagesFunc func(ctx context.Context, messageIDs []string, labelID string) error
+
+	// UpdateLabelFunc mocks the UpdateLabel method.
+	UpdateLabelFunc func(ctx context.Context, labelID string, req proton.UpdateLabelReq) (proton.Label, error)
+
+	// doFunc mocks the do method.
+	doFunc func(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -47,6 +78,13 @@ type ProtonClientMock struct {
 			// Req is the req argument value.
 			Req proton.CreateLabelReq
 		}
+		// DeleteLabel holds details about calls to the DeleteLabel method.
+		DeleteLabel []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// LabelID is the labelID argument value.
+			LabelID string
+		}
 		// GetLabels holds details about calls to the GetLabels method.
 		GetLabels []struct {
 			// Ctx is the ctx argument value.
@@ -54,9 +92,48 @@ type ProtonClientMock struct {
 			// LabelTypes is the labelTypes argument value.
 			LabelTypes []proton.LabelType
 		}
+		// LabelMessages holds details about calls to the LabelMessages method.
+		LabelMessages []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MessageIDs is the messageIDs argument value.
+			MessageIDs []string
+			// LabelID is the labelID argument value.
+			LabelID string
+		}
+		// UnlabelMessages holds details about calls to the UnlabelMessages method.
+		UnlabelMessages []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MessageIDs is the messageIDs argument value.
+			MessageIDs []string
+			// LabelID is the labelID argument value.
+			LabelID string
+		}
+		// UpdateLabel holds details about calls to the UpdateLabel method.
+		UpdateLabel []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// LabelID is the labelID argument value.
+			LabelID string
+			// Req is the req argument value.
+			Req proton.UpdateLabelReq
+		}
+		// do holds details about calls to the do method.
+		do []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Fn is the fn argument value.
+			Fn func(*resty.Request) (*resty.Response, error)
+		}
 	}
-	lockCreateLabel sync.RWMutex
-	lockGetLabels   sync.RWMutex
+	lockCreateLabel     sync.RWMutex
+	lockDeleteLabel     sync.RWMutex
+	lockGetLabels       sync.RWMutex
+	lockLabelMessages   sync.RWMutex
+	lockUnlabelMessages sync.RWMutex
+	lockUpdateLabel     sync.RWMutex
+	lockdo              sync.RWMutex
 }
 
 // CreateLabel calls CreateLabelFunc.
@@ -95,6 +172,42 @@ func (mock *ProtonClientMock) CreateLabelCalls() []struct {
 	return calls
 }
 
+// DeleteLabel calls DeleteLabelFunc.
+func (mock *ProtonClientMock) DeleteLabel(ctx context.Context, labelID string) error {
+	if mock.DeleteLabelFunc == nil {
+		panic("ProtonClientMock.DeleteLabelFunc: method is nil but ProtonClient.DeleteLabel was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		LabelID string
+	}{
+		Ctx:     ctx,
+		LabelID: labelID,
+	}
+	mock.lockDeleteLabel.Lock()
+	mock.calls.DeleteLabel = append(mock.calls.DeleteLabel, callInfo)
+	mock.lockDeleteLabel.Unlock()
+	return mock.DeleteLabelFunc(ctx, labelID)
+}
+
+// DeleteLabelCalls gets all the calls that were made to DeleteLabel.
+// Check the length with:
+//
+//	len(mockedProtonClient.DeleteLabelCalls())
+func (mock *ProtonClientMock) DeleteLabelCalls() []struct {
+	Ctx     context.Context
+	LabelID string
+} {
+	var calls []struct {
+		Ctx     context.Context
+		LabelID string
+	}
+	mock.lockDeleteLabel.RLock()
+	calls = mock.calls.DeleteLabel
+	mock.lockDeleteLabel.RUnlock()
+	return calls
+}
+
 // GetLabels calls GetLabelsFunc.
 func (mock *ProtonClientMock) GetLabels(ctx context.Context, labelTypes ...proton.LabelType) ([]proton.Label, error) {
 	if mock.GetLabelsFunc == nil {
@@ -128,5 +241,161 @@ func (mock *ProtonClientMock) GetLabelsCalls() []struct {
 	mock.lockGetLabels.RLock()
 	calls = mock.calls.GetLabels
 	mock.lockGetLabels.RUnlock()
+	return calls
+}
+
+// LabelMessages calls LabelMessagesFunc.
+func (mock *ProtonClientMock) LabelMessages(ctx context.Context, messageIDs []string, labelID string) error {
+	if mock.LabelMessagesFunc == nil {
+		panic("ProtonClientMock.LabelMessagesFunc: method is nil but ProtonClient.LabelMessages was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		MessageIDs []string
+		LabelID    string
+	}{
+		Ctx:        ctx,
+		MessageIDs: messageIDs,
+		LabelID:    labelID,
+	}
+	mock.lockLabelMessages.Lock()
+	mock.calls.LabelMessages = append(mock.calls.LabelMessages, callInfo)
+	mock.lockLabelMessages.Unlock()
+	return mock.LabelMessagesFunc(ctx, messageIDs, labelID)
+}
+
+// LabelMessagesCalls gets all the calls that were made to LabelMessages.
+// Check the length with:
+//
+//	len(mockedProtonClient.LabelMessagesCalls())
+func (mock *ProtonClientMock) LabelMessagesCalls() []struct {
+	Ctx        context.Context
+	MessageIDs []string
+	LabelID    string
+} {
+	var calls []struct {
+		Ctx        context.Context
+		MessageIDs []string
+		LabelID    string
+	}
+	mock.lockLabelMessages.RLock()
+	calls = mock.calls.LabelMessages
+	mock.lockLabelMessages.RUnlock()
+	return calls
+}
+
+// UnlabelMessages calls UnlabelMessagesFunc.
+func (mock *ProtonClientMock) UnlabelMessages(ctx context.Context, messageIDs []string, labelID string) error {
+	if mock.UnlabelMessagesFunc == nil {
+		panic("ProtonClientMock.UnlabelMessagesFunc: method is nil but ProtonClient.UnlabelMessages was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		MessageIDs []string
+		LabelID    string
+	}{
+		Ctx:        ctx,
+		MessageIDs: messageIDs,
+		LabelID:    labelID,
+	}
+	mock.lockUnlabelMessages.Lock()
+	mock.calls.UnlabelMessages = append(mock.calls.UnlabelMessages, callInfo)
+	mock.lockUnlabelMessages.Unlock()
+	return mock.UnlabelMessagesFunc(ctx, messageIDs, labelID)
+}
+
+// UnlabelMessagesCalls gets all the calls that were made to UnlabelMessages.
+// Check the length with:
+//
+//	len(mockedProtonClient.UnlabelMessagesCalls())
+func (mock *ProtonClientMock) UnlabelMessagesCalls() []struct {
+	Ctx        context.Context
+	MessageIDs []string
+	LabelID    string
+} {
+	var calls []struct {
+		Ctx        context.Context
+		MessageIDs []string
+		LabelID    string
+	}
+	mock.lockUnlabelMessages.RLock()
+	calls = mock.calls.UnlabelMessages
+	mock.lockUnlabelMessages.RUnlock()
+	return calls
+}
+
+// UpdateLabel calls UpdateLabelFunc.
+func (mock *ProtonClientMock) UpdateLabel(ctx context.Context, labelID string, req proton.UpdateLabelReq) (proton.Label, error) {
+	if mock.UpdateLabelFunc == nil {
+		panic("ProtonClientMock.UpdateLabelFunc: method is nil but ProtonClient.UpdateLabel was just called")
+	}
+	callInfo := struct {
+		Ctx     context.Context
+		LabelID string
+		Req     proton.UpdateLabelReq
+	}{
+		Ctx:     ctx,
+		LabelID: labelID,
+		Req:     req,
+	}
+	mock.lockUpdateLabel.Lock()
+	mock.calls.UpdateLabel = append(mock.calls.UpdateLabel, callInfo)
+	mock.lockUpdateLabel.Unlock()
+	return mock.UpdateLabelFunc(ctx, labelID, req)
+}
+
+// UpdateLabelCalls gets all the calls that were made to UpdateLabel.
+// Check the length with:
+//
+//	len(mockedProtonClient.UpdateLabelCalls())
+func (mock *ProtonClientMock) UpdateLabelCalls() []struct {
+	Ctx     context.Context
+	LabelID string
+	Req     proton.UpdateLabelReq
+} {
+	var calls []struct {
+		Ctx     context.Context
+		LabelID string
+		Req     proton.UpdateLabelReq
+	}
+	mock.lockUpdateLabel.RLock()
+	calls = mock.calls.UpdateLabel
+	mock.lockUpdateLabel.RUnlock()
+	return calls
+}
+
+// do calls doFunc.
+func (mock *ProtonClientMock) do(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error {
+	if mock.doFunc == nil {
+		panic("ProtonClientMock.doFunc: method is nil but ProtonClient.do was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Fn  func(*resty.Request) (*resty.Response, error)
+	}{
+		Ctx: ctx,
+		Fn:  fn,
+	}
+	mock.lockdo.Lock()
+	mock.calls.do = append(mock.calls.do, callInfo)
+	mock.lockdo.Unlock()
+	return mock.doFunc(ctx, fn)
+}
+
+// doCalls gets all the calls that were made to do.
+// Check the length with:
+//
+//	len(mockedProtonClient.doCalls())
+func (mock *ProtonClientMock) doCalls() []struct {
+	Ctx context.Context
+	Fn  func(*resty.Request) (*resty.Response, error)
+} {
+	var calls []struct {
+		Ctx context.Context
+		Fn  func(*resty.Request) (*resty.Response, error)
+	}
+	mock.lockdo.RLock()
+	calls = mock.calls.do
+	mock.lockdo.RUnlock()
 	return calls
 }
