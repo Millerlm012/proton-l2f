@@ -18,7 +18,7 @@ type ProtonClient interface {
 	LabelMessages(ctx context.Context, messageIDs []string, labelID string) error
 	DeleteLabel(ctx context.Context, labelID string) error
 	UpdateLabel(ctx context.Context, labelID string, req proton.UpdateLabelReq) (proton.Label, error)
-	do(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error
+	Do(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error
 }
 
 type Service struct {
@@ -116,7 +116,7 @@ func (s *Service) ListEmailsWithLabel(ctx context.Context, labelId string) ([]pr
 		Messages []proton.Message
 	}
 
-	if err := s.Client.do(ctx, func(r *resty.Request) (*resty.Response, error) {
+	if err := s.Client.Do(ctx, func(r *resty.Request) (*resty.Response, error) {
 		return r.SetResult(&res).Get("/mail/v4/messages")
 	}); err != nil {
 		return []proton.Message{}, err
@@ -160,13 +160,13 @@ func (s *Service) MigrateLabelsToFolders(ctx context.Context, labelsToIgnore []s
 		if err != nil {
 			return err
 		}
-		fmt.Println("Created %s tmp folder to replace label", newFolder.Name)
+		fmt.Printf("Created %s tmp folder to replace label", newFolder.Name)
 
 		emails, err := s.ListEmailsWithLabel(ctx, label.Name)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Moving %d emails from %s to %s", len(emails), label.Name, newFolder.Name)
+		fmt.Printf("Moving %d emails from %s to %s", len(emails), label.Name, newFolder.Name)
 
 		// removing old label
 		emailIds := FlattenToMessageIds(emails)
@@ -177,7 +177,7 @@ func (s *Service) MigrateLabelsToFolders(ctx context.Context, labelsToIgnore []s
 		if err := s.Client.LabelMessages(ctx, emailIds, newFolder.ID); err != nil {
 			return err
 		}
-		fmt.Println("Moved all emails from %s to %s", label.Name, newFolder.Name)
+		fmt.Printf("Moved all emails from %s to %s", label.Name, newFolder.Name)
 
 		if err := s.Client.DeleteLabel(ctx, label.ID); err != nil {
 			return err
@@ -192,7 +192,7 @@ func (s *Service) MigrateLabelsToFolders(ctx context.Context, labelsToIgnore []s
 				return err
 			}
 
-			fmt.Println("Updated %s to %s", label.Name, newLabel.Name)
+			fmt.Printf("Updated %s to %s", label.Name, newLabel.Name)
 		}
 	}
 

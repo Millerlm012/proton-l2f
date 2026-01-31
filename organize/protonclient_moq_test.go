@@ -26,6 +26,9 @@ var _ ProtonClient = &ProtonClientMock{}
 //			DeleteLabelFunc: func(ctx context.Context, labelID string) error {
 //				panic("mock out the DeleteLabel method")
 //			},
+//			DoFunc: func(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error {
+//				panic("mock out the Do method")
+//			},
 //			GetLabelsFunc: func(ctx context.Context, labelTypes ...proton.LabelType) ([]proton.Label, error) {
 //				panic("mock out the GetLabels method")
 //			},
@@ -37,9 +40,6 @@ var _ ProtonClient = &ProtonClientMock{}
 //			},
 //			UpdateLabelFunc: func(ctx context.Context, labelID string, req proton.UpdateLabelReq) (proton.Label, error) {
 //				panic("mock out the UpdateLabel method")
-//			},
-//			doFunc: func(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error {
-//				panic("mock out the do method")
 //			},
 //		}
 //
@@ -54,6 +54,9 @@ type ProtonClientMock struct {
 	// DeleteLabelFunc mocks the DeleteLabel method.
 	DeleteLabelFunc func(ctx context.Context, labelID string) error
 
+	// DoFunc mocks the Do method.
+	DoFunc func(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error
+
 	// GetLabelsFunc mocks the GetLabels method.
 	GetLabelsFunc func(ctx context.Context, labelTypes ...proton.LabelType) ([]proton.Label, error)
 
@@ -65,9 +68,6 @@ type ProtonClientMock struct {
 
 	// UpdateLabelFunc mocks the UpdateLabel method.
 	UpdateLabelFunc func(ctx context.Context, labelID string, req proton.UpdateLabelReq) (proton.Label, error)
-
-	// doFunc mocks the do method.
-	doFunc func(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -84,6 +84,13 @@ type ProtonClientMock struct {
 			Ctx context.Context
 			// LabelID is the labelID argument value.
 			LabelID string
+		}
+		// Do holds details about calls to the Do method.
+		Do []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Fn is the fn argument value.
+			Fn func(*resty.Request) (*resty.Response, error)
 		}
 		// GetLabels holds details about calls to the GetLabels method.
 		GetLabels []struct {
@@ -119,21 +126,14 @@ type ProtonClientMock struct {
 			// Req is the req argument value.
 			Req proton.UpdateLabelReq
 		}
-		// do holds details about calls to the do method.
-		do []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Fn is the fn argument value.
-			Fn func(*resty.Request) (*resty.Response, error)
-		}
 	}
 	lockCreateLabel     sync.RWMutex
 	lockDeleteLabel     sync.RWMutex
+	lockDo              sync.RWMutex
 	lockGetLabels       sync.RWMutex
 	lockLabelMessages   sync.RWMutex
 	lockUnlabelMessages sync.RWMutex
 	lockUpdateLabel     sync.RWMutex
-	lockdo              sync.RWMutex
 }
 
 // CreateLabel calls CreateLabelFunc.
@@ -205,6 +205,42 @@ func (mock *ProtonClientMock) DeleteLabelCalls() []struct {
 	mock.lockDeleteLabel.RLock()
 	calls = mock.calls.DeleteLabel
 	mock.lockDeleteLabel.RUnlock()
+	return calls
+}
+
+// Do calls DoFunc.
+func (mock *ProtonClientMock) Do(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error {
+	if mock.DoFunc == nil {
+		panic("ProtonClientMock.DoFunc: method is nil but ProtonClient.Do was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Fn  func(*resty.Request) (*resty.Response, error)
+	}{
+		Ctx: ctx,
+		Fn:  fn,
+	}
+	mock.lockDo.Lock()
+	mock.calls.Do = append(mock.calls.Do, callInfo)
+	mock.lockDo.Unlock()
+	return mock.DoFunc(ctx, fn)
+}
+
+// DoCalls gets all the calls that were made to Do.
+// Check the length with:
+//
+//	len(mockedProtonClient.DoCalls())
+func (mock *ProtonClientMock) DoCalls() []struct {
+	Ctx context.Context
+	Fn  func(*resty.Request) (*resty.Response, error)
+} {
+	var calls []struct {
+		Ctx context.Context
+		Fn  func(*resty.Request) (*resty.Response, error)
+	}
+	mock.lockDo.RLock()
+	calls = mock.calls.Do
+	mock.lockDo.RUnlock()
 	return calls
 }
 
@@ -361,41 +397,5 @@ func (mock *ProtonClientMock) UpdateLabelCalls() []struct {
 	mock.lockUpdateLabel.RLock()
 	calls = mock.calls.UpdateLabel
 	mock.lockUpdateLabel.RUnlock()
-	return calls
-}
-
-// do calls doFunc.
-func (mock *ProtonClientMock) do(ctx context.Context, fn func(*resty.Request) (*resty.Response, error)) error {
-	if mock.doFunc == nil {
-		panic("ProtonClientMock.doFunc: method is nil but ProtonClient.do was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-		Fn  func(*resty.Request) (*resty.Response, error)
-	}{
-		Ctx: ctx,
-		Fn:  fn,
-	}
-	mock.lockdo.Lock()
-	mock.calls.do = append(mock.calls.do, callInfo)
-	mock.lockdo.Unlock()
-	return mock.doFunc(ctx, fn)
-}
-
-// doCalls gets all the calls that were made to do.
-// Check the length with:
-//
-//	len(mockedProtonClient.doCalls())
-func (mock *ProtonClientMock) doCalls() []struct {
-	Ctx context.Context
-	Fn  func(*resty.Request) (*resty.Response, error)
-} {
-	var calls []struct {
-		Ctx context.Context
-		Fn  func(*resty.Request) (*resty.Response, error)
-	}
-	mock.lockdo.RLock()
-	calls = mock.calls.do
-	mock.lockdo.RUnlock()
 	return calls
 }
