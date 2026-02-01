@@ -25,6 +25,8 @@ type Service struct {
 	Client ProtonClient
 }
 
+var TmpFolderName string = "l2f-tmp-"
+
 func New(protonClient ProtonClient) *Service {
 	return &Service{
 		Client: protonClient,
@@ -74,7 +76,7 @@ func (s *Service) createMissingFolder(ctx context.Context, labelName string, par
 		return newFolder, nil
 	}
 
-	tmpFolderName := "l2f-tmp-" + labelName
+	tmpFolderName := TmpFolderName + labelName
 	newFolder, err := s.Client.CreateLabel(ctx, proton.CreateLabelReq{
 		Name:     tmpFolderName,
 		Type:     proton.LabelTypeFolder,
@@ -84,7 +86,7 @@ func (s *Service) createMissingFolder(ctx context.Context, labelName string, par
 		return proton.Label{}, fmt.Errorf("failed to create %s folder %w", labelName, err)
 	}
 
-	folders[tmpFolderName] = newFolder
+	folders[labelName] = newFolder
 	return newFolder, nil
 }
 
@@ -109,17 +111,32 @@ func (s *Service) CreateMissingFolders(ctx context.Context, label proton.Label, 
 }
 
 /*
-ListEmails returns a list of all emails with a specific labelId
+ListEmailsWithLabel returns a list of all emails with a specific labelID
 */
-func (s *Service) ListEmailsWithLabel(ctx context.Context, labelId string) ([]proton.Message, error) {
+func (s *Service) ListEmailsWithLabel(ctx context.Context, labelID string) ([]proton.Message, error) {
+	pageSize := 100
+	var allMessages []proton.Message
 	var res struct {
+		Total    int
 		Messages []proton.Message
 	}
 
-	if err := s.Client.Do(ctx, func(r *resty.Request) (*resty.Response, error) {
-		return r.SetResult(&res).Get("/mail/v4/messages")
-	}); err != nil {
-		return []proton.Message{}, err
+	page := 0
+	for {
+		if err := s.Client.Do(ctx, func(r *resty.Request) (*resty.Response, error) {
+			url := fmt.Sprintf("/mail/v4/messages?Page=%d&PageSize=%d&Limit=%dLabelID=%s&Sort=Time&Desc=1", page, pageSize, pageSize, labelID)
+			return r.SetResult(&res).Get(url)
+		}); err != nil {
+			return []proton.Message{}, err
+		}
+
+		allMessages = append(allMessages, res.Messages...)
+
+		if len(allMessages) == res.Total {
+			break
+		}
+
+		page++
 	}
 
 	return res.Messages, nil
@@ -156,13 +173,15 @@ func (s *Service) MigrateLabelsToFolders(ctx context.Context, labelsToIgnore []s
 			continue
 		}
 
+		// create new folders to replace labels
 		newFolder, err := s.CreateMissingFolders(ctx, label, mappedFolders)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Created %s tmp folder to replace label", newFolder.Name)
 
-		emails, err := s.ListEmailsWithLabel(ctx, label.Name)
+		// getting all emails with og label
+		emails, err := s.ListEmailsWithLabel(ctx, label.ID)
 		if err != nil {
 			return err
 		}
@@ -174,19 +193,22 @@ func (s *Service) MigrateLabelsToFolders(ctx context.Context, labelsToIgnore []s
 			return err
 		}
 
+		// moving email to newly created folder
 		if err := s.Client.LabelMessages(ctx, emailIds, newFolder.ID); err != nil {
 			return err
 		}
 		fmt.Printf("Moved all emails from %s to %s", label.Name, newFolder.Name)
 
+		// deleting the og label
 		if err := s.Client.DeleteLabel(ctx, label.ID); err != nil {
 			return err
 		}
 	}
 
+	// removing tmp names from all new folders
 	for _, label := range mappedFolders {
-		if strings.Contains(label.Name, "l2f-tmp-") {
-			newName := strings.Replace(label.Name, "l2f-tmp-", "", 1)
+		if strings.Contains(label.Name, TmpFolderName) {
+			newName := strings.Replace(label.Name, TmpFolderName, "", 1)
 			newLabel, err := s.Client.UpdateLabel(ctx, label.ID, proton.UpdateLabelReq{Name: newName})
 			if err != nil {
 				return err

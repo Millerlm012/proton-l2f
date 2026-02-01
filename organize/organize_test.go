@@ -24,7 +24,7 @@ func TestCreateMissingFolderWithFolderThatAlreadyExists(t *testing.T) {
 
 	ctx := context.Background()
 	service := New(mock)
-	err := service.createMissingFolder(ctx, "Label", "", &existingFolders)
+	_, err := service.createMissingFolder(ctx, "Label", "", &existingFolders)
 
 	assert.NoError(t, err)
 	assert.Equal(t, len(expectedFolders), len(existingFolders))
@@ -41,25 +41,26 @@ func TestCreateMissingFolder(t *testing.T) {
 	}
 	existingFolders := make(map[string]proton.Label)
 	expectedFolders := map[string]proton.Label{
-		"Label": {Name: "Label"},
+		"Label": {Name: TmpFolderName + "Label"},
 	}
 
 	ctx := context.Background()
 	service := New(mock)
-	err := service.createMissingFolder(ctx, "Label", "", &existingFolders)
+	newFolder, err := service.createMissingFolder(ctx, "Label", "", &existingFolders)
 
 	assert.NoError(t, err)
 	assert.Equal(t, len(expectedFolders), len(existingFolders))
 	assert.Equal(t, expectedFolders["Label"], existingFolders["Label"])
+	assert.Equal(t, expectedFolders["Label"].Name, newFolder.Name)
 }
 
 func TestCreateMissingSubFolders(t *testing.T) {
 	subFolders := []string{"Parent", "Child", "Grandchild"}
 	existingFolders := make(map[string]proton.Label)
 	expectedFolders := map[string]proton.Label{
-		"Parent":     {Name: "Parent"},
-		"Child":      {Name: "Child"},
-		"Grandchild": {Name: "Granchild"},
+		"Parent":     {Name: TmpFolderName + "Parent"},
+		"Child":      {Name: TmpFolderName + "Child"},
+		"Grandchild": {Name: TmpFolderName + "Granchild"},
 	}
 	expectedParentIds := []string{"", "ParentID", "ChildID"}
 
@@ -68,9 +69,9 @@ func TestCreateMissingSubFolders(t *testing.T) {
 		CreateLabelFunc: func(ctx context.Context, req proton.CreateLabelReq) (proton.Label, error) {
 			id := uuid.New().String()
 			switch req.Name {
-			case "Parent":
+			case TmpFolderName + "Parent":
 				id = "ParentID"
-			case "Child":
+			case TmpFolderName + "Child":
 				id = "ChildID"
 			}
 
@@ -84,7 +85,7 @@ func TestCreateMissingSubFolders(t *testing.T) {
 
 	ctx := context.Background()
 	service := New(mock)
-	err := service.createSubFolders(ctx, subFolders, &existingFolders)
+	_, err := service.createSubFolders(ctx, subFolders, &existingFolders)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(mock.CreateLabelCalls()))
@@ -97,10 +98,10 @@ func TestCreateMissingFolderAndSubFolders(t *testing.T) {
 	subFolders := []string{"Parent", "Child", "Grandchild"}
 	existingFolders := make(map[string]proton.Label)
 	expectedFolders := map[string]proton.Label{
-		"Parent":     {Name: "Parent"},
-		"Child":      {Name: "Child"},
-		"Grandchild": {Name: "Grandchild"},
-		"Label":      {Name: "Label"},
+		"Parent":     {Name: TmpFolderName + "Parent"},
+		"Child":      {Name: TmpFolderName + "Child"},
+		"Grandchild": {Name: TmpFolderName + "Grandchild"},
+		"Label":      {Name: TmpFolderName + "Label"},
 	}
 
 	mock := &ProtonClientMock{
@@ -113,10 +114,10 @@ func TestCreateMissingFolderAndSubFolders(t *testing.T) {
 
 	ctx := context.Background()
 	service := New(mock)
-	err := service.createMissingFolder(ctx, "Label", "", &existingFolders)
+	_, err := service.createMissingFolder(ctx, "Label", "", &existingFolders)
 	assert.NoError(t, err)
 
-	err = service.createSubFolders(ctx, subFolders, &existingFolders)
+	_, err = service.createSubFolders(ctx, subFolders, &existingFolders)
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(expectedFolders), len(existingFolders))
